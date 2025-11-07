@@ -1,63 +1,49 @@
-import React, { useState, useEffect } from "react";
-import Login from "./loginreg/loginpage.jsx";
-import Register from "./loginreg/register.jsx";
-import { auth } from "./loginreg/firebase.jsx";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import "./loginreg/styles.css";
+import { useState, useEffect } from "react";
+import BillUpload from "./components/BillUpload";
+import BillAnalysis from "./components/BillAnalysis";
 
 function App() {
-  var [page, setPage] = useState("login");
-  var [user, setUser] = useState(null);
-  var [year, setYear] = useState(new Date().getFullYear());
-  var [toastMessage, setToastMessage] = useState("");
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [currentBillId, setCurrentBillId] = useState(null);
+  const [showAnalysis, setShowAnalysis] = useState(false);
 
-  function goToLogin() { setPage("login"); }
-  function goToRegister() { setPage("register"); }
-  function goToLanding() { setPage("landing"); }
+  const toast = (msg) => {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.classList.add('show'), 10);
+    setTimeout(() => { 
+      t.classList.remove('show'); 
+      setTimeout(() => t.remove(), 200);
+    }, 2400);
+  };
 
-  async function handleLogout() {
-    await signOut(auth);
-    setUser(null);
-    setPage("login");
-  }
+  const handleUploadSuccess = (data) => {
+    toast(`File uploaded successfully! Analyzing...`);
+    setCurrentBillId(data.id);
+    setShowAnalysis(true);
+    
+    // Scroll to analysis section
+    setTimeout(() => {
+      document.getElementById('analysis')?.scrollIntoView({ behavior: 'smooth' });
+    }, 500);
+  };
 
-  function toast(msg) {
-    setToastMessage(msg);
-    setTimeout(function() { setToastMessage(""); }, 2400);
-  }
-
-  function handleComingSoon() { toast("Coming soon — connect backend."); }
-
-  useEffect(function() {
-    var unsubscribe = onAuthStateChanged(auth, function(currentUser) {
-      setUser(currentUser);
-      if (currentUser) setPage("landing");
-    });
-    return function() { unsubscribe(); }
-  }, []);
-
-  if (page === "login") {
-    return <Login onRegister={goToRegister} onSuccess={goToLanding} />;
-  }
-
-  if (page === "register") {
-    return <Register onLogin={goToLogin} />;
-  }
+  const handleClick = (e) => {
+    e.preventDefault();
+    toast('Coming soon — connect backend.');
+  };
 
   return (
-    <div>
+    <>
       <header className="site-header">
         <div className="container header-inner">
           <div className="brand">
             <div className="logo" aria-hidden="true">✓</div>
             <h1 className="title">MediCheck</h1>
           </div>
-
-          <nav className="nav" aria-label="Primary">
-            <button className="button ghost" onClick={handleLogout}>
-              Logout
-            </button>
-          </nav>
+          <nav className="nav" aria-label="Primary"></nav>
         </div>
       </header>
 
@@ -69,12 +55,8 @@ function App() {
               Upload your medical bill and get instant analysis. Detect overcharges, duplicate fees, and billing errors.
             </p>
             <div className="hero-cta">
-              <button className="button primary" onClick={handleComingSoon}>
-                Check documents
-              </button>
-              <button className="button ghost" onClick={handleComingSoon}>
-                Examine prices
-              </button>
+              <a href="#documents" className="button primary">Check documents</a>
+              <a href="#prices" className="button ghost">Examine prices</a>
             </div>
           </div>
         </section>
@@ -89,15 +71,13 @@ function App() {
             <div className="card-grid">
               <article className="card upload-card">
                 <div className="card-icon" aria-hidden="true">📄</div>
-                <h4>Upload a document</h4>
-                <p>We'll scan and flag issues (missing fields, mismatched IDs, etc.).</p>
-                <form className="inline-form" onSubmit={function(e){ e.preventDefault(); handleComingSoon(); }}>
-                  <input type="file" aria-label="Choose document to check" />
-                  <button className="button primary" type="submit">Check now</button>
-                </form>
-                <p className="coming-soon">Backend hookup pending — connect endpoint later.</p>
+                <h4>Upload Your Bill</h4>
+                <p>We'll extract text, analyze charges, and identify potential issues.</p>
+                
+                <BillUpload onUploadSuccess={handleUploadSuccess} />
               </article>
 
+        
             </div>
           </div>
         </section>
@@ -122,20 +102,27 @@ function App() {
                 <div className="card-icon" aria-hidden="true">🏥</div>
                 <h4>Search by procedure</h4>
                 <p>Find typical cash prices and negotiated rates (where available).</p>
-                <form className="inline-form" onSubmit={function(e){ e.preventDefault(); handleComingSoon(); }}>
+
+                <form className="inline-form" onSubmit={(e) => e.preventDefault()}>
                   <input type="text" placeholder="e.g., MRI, CPT 70551" aria-label="Procedure" />
-                  <button className="button primary" type="submit">Search</button>
+                  <button className="button primary" type="button" onClick={handleClick}>
+                    Search
+                  </button>
                 </form>
 
+                {/* <p className="coming-soon">Results table will render here.</p> */}
               </article>
 
               <article className="card">
                 <div className="card-icon" aria-hidden="true">🧭</div>
                 <h4>Nearby providers</h4>
                 <p>Explore providers by distance and price transparency.</p>
-                <form className="inline-form" onSubmit={function(e){ e.preventDefault(); handleComingSoon(); }}>
+
+                <form className="inline-form" onSubmit={(e) => e.preventDefault()}>
                   <input type="text" placeholder="ZIP or City" aria-label="Location" />
-                  <button className="button" type="submit">Explore</button>
+                  <button className="button" type="button" onClick={handleClick}>
+                    Explore
+                  </button>
                 </form>
 
               </article>
@@ -146,13 +133,10 @@ function App() {
 
       <footer className="site-footer">
         <div className="container footer-inner">
-          <p className="muted">© {year} MediCheck. All rights reserved.</p>
+          <p className="muted">© <span id="year">{year}</span> MediCheck. All rights reserved.</p>
         </div>
       </footer>
-
-      {/* Toast */}
-      {toastMessage && <div className="toast show">{toastMessage}</div>}
-    </div>
+    </>
   );
 }
 

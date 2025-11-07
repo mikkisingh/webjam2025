@@ -15,7 +15,7 @@ build/
 *.sqlite3
 
 # Environment variables
-.env
+# .env
 
 # Uploaded files
 backend/uploads/*
