@@ -6,7 +6,7 @@ import { initializeApp } from "firebase/app";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyC3nn1XGtwPhqnaNPtqoe6Du8b_eFdYvY8",
+  apiKey: "",
   authDomain: "medicheck-71418.firebaseapp.com",
   projectId: "medicheck-71418",
   storageBucket: "medicheck-71418.firebasestorage.app",
