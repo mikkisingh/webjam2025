@@ -2,19 +2,19 @@
 
 An AI-powered web application that analyzes medical bills to detect overcharges, duplicate fees, and billing errors.
 
-## 🎯 Features
+## Features
 
-- **📄 Smart Upload**: Drag-and-drop support for PDF, JPG, and PNG medical bills
-- **🤖 AI Analysis**: Uses Google Gemini 2.0 Flash to:
+- **Smart Upload**: Drag-and-drop support for PDF, JPG, and PNG medical bills
+- **AI Analysis**: Uses Google Gemini 2.0 Flash to:
   - Extract and structure bill data (patient info, charges, dates)
   - Detect overpriced services and duplicate charges
   - Identify missing insurance adjustments
   - Flag unbundled procedures
-- **📊 Detailed Results**: Color-coded issues, cost breakdowns, and potential savings
-- **✉️ Dispute Templates**: Auto-generated professional email templates for billing departments
-- **💾 History Tracking**: Store and review past bill analyses
+- **Detailed Results**: Color-coded issues, cost breakdowns, and potential savings
+- **Dispute Templates**: Auto-generated professional email templates for billing departments
+- **History Tracking**: Store and review past bill analyses
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 - **Backend**: Flask + SQLAlchemy + SQLite
 - **Frontend**: React (Vite) + Modern CSS
@@ -23,7 +23,7 @@ An AI-powered web application that analyzes medical bills to detect overcharges,
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 See [SETUP.md](SETUP.md) for detailed installation instructions.
 
@@ -64,7 +64,7 @@ Frontend runs on: `http://127.0.0.1:5173`
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 webjam2025/
@@ -103,7 +103,7 @@ webjam2025/
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -113,7 +113,7 @@ webjam2025/
 
 ---
 
-## 📝 Notes
+## Notes
 
 - CORS is enabled for `http://127.0.0.1:5173`
 - Database file (`app.db`) is auto-created in the backend folder
