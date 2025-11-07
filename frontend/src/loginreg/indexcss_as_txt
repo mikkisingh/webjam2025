@@ -1,0 +1,548 @@
+/* ====== Design tokens ====== */
+:root{
+  --bg: #0f1115;
+  --panel: #151922;
+  --panel-alt: #111520;
+  --text: #e9ecf1;
+  --muted: #a9b2c0;
+  --brand: #6dd3fb;         /* primary accent */
+  --brand-ink: #06121a;
+  --ring: #8cdfff;
+  --card: #0f1420;
+  --card-border: #1d2636;
+  --shadow: 0 10px 30px rgba(0,0,0,.35);
+  --radius: 16px;
+  --gap: 20px;
+}
+
+@media (prefers-color-scheme: light){
+  :root{
+    --bg: #f7f9fc;
+    --panel: #ffffff;
+    --panel-alt: #f5f7fb;
+    --text: #111321;
+    --muted: #5b6678;
+    --brand: #2b8cff;
+    --brand-ink: #ffffff;
+    --ring: #b7d6ff;
+    --card: #ffffff;
+    --card-border: #e7ecf5;
+  }
+}
+
+/* ====== Base ====== */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+               Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  color: var(--text);
+  background: radial-gradient(1200px 600px at 20% -10%, #1b2333 0%, transparent 60%),
+              radial-gradient(1000px 600px at 120% 10%, #10243a 0%, transparent 60%),
+              var(--bg);
+  line-height:1.5;
+}
+
+.container{
+  width:min(1100px, 92%);
+  margin-inline:auto;
+}
+
+h1,h2,h3,h4{margin:0 0 10px}
+p{margin:0 0 14px}
+
+/* ====== Header ====== */
+.site-header{
+  position:sticky; top:0; z-index:10;
+  background: color-mix(in oklab, var(--panel) 70%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom:1px solid var(--card-border);
+}
+.header-inner{display:flex; align-items:center; justify-content:space-between; padding:14px 0}
+.brand{display:flex; align-items:center; gap:12px}
+.logo{
+  width:36px; height:36px; display:grid; place-items:center;
+  border-radius:12px; background:var(--brand); color:var(--brand-ink);
+  font-weight:800; box-shadow: var(--shadow);
+}
+.mainTitle{margin-top: 5px; font-size:23px; letter-spacing:.2px;color:white;}
+.title{.mainTitle{margin-top: 5px; font-size:23px; letter-spacing:.2px;}}
+
+/* ====== Hero ====== */
+.hero{padding:64px 0}
+.hero-inner{display:grid; gap:16px; text-align:center}
+.hero-title{font-size: clamp(28px, 4vw, 44px)}
+.hero-subtitle{color:var(--muted); font-size: clamp(14px, 1.6vw, 18px)}
+.hero-cta{display:flex; gap:12px; justify-content:center; margin-top:12px}
+
+/* Buttons */
+.button{
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:10px 16px; border-radius:12px; border:1px solid var(--card-border);
+  background:var(--panel); color:var(--text); text-decoration:none; font-weight:600;
+  transition: transform .06s ease, box-shadow .2s ease, background .2s ease, border .2s ease;
+}
+.button:hover{transform:translateY(-1px); box-shadow:var(--shadow)}
+.button:focus-visible{outline:2px solid var(--ring); outline-offset:2px}
+.button.primary{background:linear-gradient(180deg, color-mix(in oklab, var(--brand) 90%, white 10%), var(--brand));
+                color:var(--brand-ink); border-color:transparent}
+.button.ghost{background:transparent}
+
+/* ====== Sections & Cards ====== */
+.section{padding:36px 0}
+.section.alt{background: color-mix(in oklab, var(--panel-alt) 84%, transparent)}
+.section-head{margin-bottom:16px}
+.section-head > p{color:var(--muted)}
+
+.card-grid{
+  display:grid; gap:var(--gap);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.card{
+  background:linear-gradient(180deg, color-mix(in oklab, var(--card) 85%, transparent), var(--card));
+  border:1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding:18px;
+  box-shadow: var(--shadow);
+}
+.card-icon{
+  width:40px; height:40px; display:grid; place-items:center; border-radius:10px;
+  background: color-mix(in oklab, var(--brand) 22%, var(--panel) 78%);
+  margin-bottom:10px; font-size:20px;
+}
+.card h4{margin:0 0 6px}
+.card p{color:var(--muted)}
+
+/* Inline forms */
+.inline-form{display:flex; gap:10px; margin-top:12px; flex-wrap:wrap}
+.inline-form input[type="text"],
+.inline-form input[type="file"]{
+  flex:1 1 220px;
+  min-width:220px;
+  padding:10px 12px;
+  border-radius:10px; border:1px solid var(--card-border);
+  background: var(--panel);
+  color: var(--text);
+}
+.inline-form input::file-selector-button{
+  margin-right:10px; border:none; border-radius:8px; padding:8px 12px;
+  background: var(--panel-alt); color:var(--text); cursor:pointer;
+}
+.inline-form input:focus-visible{outline:2px solid var(--ring); outline-offset:2px}
+
+.coming-soon{
+  margin-top:10px; font-size:12px; color:var(--muted);
+  border-left:3px solid color-mix(in oklab, var(--brand) 70%, transparent);
+  padding-left:10px;
+}
+
+/* ====== Footer ====== */
+.site-footer{border-top:1px solid var(--card-border); margin-top:28px; padding:18px 0}
+.footer-inner{display:flex; justify-content:center}
+.muted{color:var(--muted)}
+
+/* ====== Toast (demo only) ====== */
+.toast{
+  position:fixed; left:50%; bottom:24px; transform:translate(-50%, 20px);
+  background:var(--panel); color:var(--text); border:1px solid var(--card-border);
+  padding:10px 14px; border-radius:12px; opacity:0; pointer-events:none;
+  box-shadow: var(--shadow); transition: opacity .2s ease, transform .2s ease;
+}
+.toast.show{opacity:1; transform:translate(-50%, 0)}
+
+/* ====== Bill Upload Component ====== */
+.bill-upload {
+  margin-top: 20px;
+}
+
+.drop-zone {
+  border: 2px dashed var(--card-border);
+  border-radius: var(--radius);
+  padding: 40px 20px;
+  text-align: center;
+  background: var(--panel);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.drop-zone.active {
+  border-color: var(--brand);
+  background: color-mix(in oklab, var(--brand) 10%, var(--panel));
+}
+
+.drop-zone.has-file {
+  border-style: solid;
+  border-color: var(--brand);
+}
+
+.drop-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.drop-text {
+  color: var(--text);
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+
+.drop-hint {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.file-input-label {
+  display: inline-block;
+  margin: 8px 0;
+}
+
+.file-preview {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: color-mix(in oklab, var(--brand) 15%, var(--panel));
+  border-radius: 12px;
+}
+
+.file-icon {
+  font-size: 40px;
+}
+
+.file-info {
+  flex: 1;
+  text-align: left;
+}
+
+.file-name {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.file-size {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.remove-file {
+  background: var(--panel);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.2s ease;
+}
+
+.remove-file:hover {
+  background: var(--panel-alt);
+}
+
+.upload-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px;
+}
+
+.error-message {
+  margin-top: 12px;
+  padding: 12px;
+  background: color-mix(in oklab, #ff4444 15%, var(--panel));
+  border: 1px solid color-mix(in oklab, #ff4444 50%, transparent);
+  border-radius: 10px;
+  color: #ff6666;
+  font-size: 14px;
+}
+
+/* ====== Bill Analysis Component ====== */
+.bill-analysis {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.bill-analysis.analyzing {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.loading-spinner {
+  font-size: 60px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.bill-analysis.error {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.error-icon {
+  font-size: 60px;
+  margin-bottom: 16px;
+}
+
+.analysis-section {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+
+.analysis-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  font-size: 20px;
+}
+
+.summary-text {
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 13px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.total-amount {
+  color: var(--brand);
+  font-size: 20px;
+}
+
+.patient-resp {
+  color: var(--brand);
+  font-size: 18px;
+}
+
+.charges-table {
+  overflow-x: auto;
+}
+
+.charges-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.charges-table th,
+.charges-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.charges-table th {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.charges-table td {
+  color: var(--text);
+}
+
+.charge-cost {
+  font-weight: 600;
+  text-align: right;
+}
+
+.severity-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.severity-low {
+  background: color-mix(in oklab, #4caf50 20%, var(--panel));
+  color: #4caf50;
+  border: 1px solid color-mix(in oklab, #4caf50 40%, transparent);
+}
+
+.severity-medium {
+  background: color-mix(in oklab, #ff9800 20%, var(--panel));
+  color: #ff9800;
+  border: 1px solid color-mix(in oklab, #ff9800 40%, transparent);
+}
+
+.severity-high {
+  background: color-mix(in oklab, #f44336 20%, var(--panel));
+  color: #f44336;
+  border: 1px solid color-mix(in oklab, #f44336 40%, transparent);
+}
+
+.issues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.issue-item {
+  padding: 16px;
+  border-radius: 12px;
+  border-left: 4px solid;
+}
+
+.issue-item.severity-low {
+  background: color-mix(in oklab, #4caf50 10%, var(--panel));
+  border-color: #4caf50;
+}
+
+.issue-item.severity-medium {
+  background: color-mix(in oklab, #ff9800 10%, var(--panel));
+  border-color: #ff9800;
+}
+
+.issue-item.severity-high {
+  background: color-mix(in oklab, #f44336 10%, var(--panel));
+  border-color: #f44336;
+}
+
+.issue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.issue-type {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.issue-severity {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.issue-description {
+  color: var(--text);
+  line-height: 1.6;
+  margin-bottom: 4px;
+}
+
+.issue-item-name {
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.no-issues {
+  padding: 24px;
+  text-align: center;
+  color: #4caf50;
+  font-size: 16px;
+  background: color-mix(in oklab, #4caf50 10%, var(--panel));
+  border-radius: 12px;
+}
+
+.potential-savings {
+  margin-top: 20px;
+  padding: 20px;
+  background: color-mix(in oklab, var(--brand) 15%, var(--panel));
+  border-radius: 12px;
+  text-align: center;
+}
+
+.savings-amount {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--brand);
+  margin-top: 8px;
+}
+
+.recommendations-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recommendations-list li {
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: color-mix(in oklab, var(--brand) 10%, var(--panel));
+  border-left: 3px solid var(--brand);
+  border-radius: 8px;
+}
+
+.email-hint {
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.email-template {
+  background: var(--panel-alt);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+.email-template pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: inherit;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.upload-card {
+  grid-column: 1 / -1;
+}
+
+.features-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 12px;
+}
+
+.features-list li {
+  padding: 6px 0;
+  color: var(--text);
+}
+
