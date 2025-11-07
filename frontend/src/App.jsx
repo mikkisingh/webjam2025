@@ -66,7 +66,7 @@ function App() {
           <div className="container hero-inner">
             <h2 className="hero-title">Verify documents. Compare prices.</h2>
             <p className="hero-subtitle">
-              A simple, trustworthy place to check healthcare documents and explore fair pricing.
+              Upload your medical bill and get instant analysis. Detect overcharges, duplicate fees, and billing errors.
             </p>
             <div className="hero-cta">
               <button className="button primary" onClick={handleComingSoon}>
@@ -82,12 +82,12 @@ function App() {
         <section id="documents" className="section">
           <div className="container">
             <div className="section-head">
-              <h3>Document Check</h3>
-              <p>Upload and validate files for authenticity and completeness.</p>
+              <h3>Medical Bill Analysis</h3>
+              <p>Upload your medical bill for automated analysis and cost verification.</p>
             </div>
 
             <div className="card-grid">
-              <article className="card">
+              <article className="card upload-card">
                 <div className="card-icon" aria-hidden="true">📄</div>
                 <h4>Upload a document</h4>
                 <p>We'll scan and flag issues (missing fields, mismatched IDs, etc.).</p>
@@ -111,6 +111,14 @@ function App() {
             </div>
           </div>
         </section>
+
+        {showAnalysis && currentBillId && (
+          <section id="analysis" className="section alt">
+            <div className="container">
+              <BillAnalysis billId={currentBillId} />
+            </div>
+          </section>
+        )}
 
         <section id="prices" className="section alt">
           <div className="container">

@@ -1,3 +1,8 @@
 flask
 flask-cors
 sqlalchemy
+pdfplumber
+pytesseract
+Pillow
+google-generativeai
+python-dotenv
