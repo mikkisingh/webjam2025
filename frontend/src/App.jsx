@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import BillUpload from "./components/BillUpload";
 import BillAnalysis from "./components/BillAnalysis";
+import NearbyProviders from "./components/NearbyProviders";
+
 
 function App() {
   const [year, setYear] = useState(new Date().getFullYear());
@@ -102,30 +104,16 @@ function App() {
                 <div className="card-icon" aria-hidden="true">🏥</div>
                 <h4>Search by procedure</h4>
                 <p>Find typical cash prices and negotiated rates (where available).</p>
-
                 <form className="inline-form" onSubmit={(e) => e.preventDefault()}>
-                  <input type="text" placeholder="e.g., MRI, CPT 70551" aria-label="Procedure" />
+                  <input type="text" placeholder="e.g., MRI, CPT 70551" aria-label="Procedure"/>
                   <button className="button primary" type="button" onClick={handleClick}>
                     Search
                   </button>
                 </form>
-
-                {/* <p className="coming-soon">Results table will render here.</p> */}
               </article>
 
-              <article className="card">
-                <div className="card-icon" aria-hidden="true">🧭</div>
-                <h4>Nearby providers</h4>
-                <p>Explore providers by distance and price transparency.</p>
-
-                <form className="inline-form" onSubmit={(e) => e.preventDefault()}>
-                  <input type="text" placeholder="ZIP or City" aria-label="Location" />
-                  <button className="button" type="button" onClick={handleClick}>
-                    Explore
-                  </button>
-                </form>
-
-              </article>
+              {/* ✅ New React version of the Nearby Providers feature */}
+              <NearbyProviders/>
             </div>
           </div>
         </section>
