@@ -12,8 +12,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import math
+import requests
+from locate import locate_bp
+
 app = Flask(__name__)
 CORS(app)
+
+app.register_blueprint(locate_bp)
 
 # Configuration
 UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'uploads')
