@@ -1,0 +1,83 @@
+
+.pageBkg {
+    background-image: url("https://t4.ftcdn.net/jpg/04/84/11/15/360_F_484111532_W0WOkKeXQzF75XusA7R8e3llIDXqyCFm.jpg"); /*royalty free image*/
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.inputBlock {
+    width: 360px;
+    height : 350px;
+    background-color: whitesmoke;
+    display: flex;
+    flex-direction: column;
+    border-radius: 20px;
+}
+
+.emailInput {
+    padding: 15px;
+    margin-left: 10px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    font-size: 12pt;
+    border: 1px solid black;
+    border-radius: 15px;
+    font-family:'Courier New', Courier, monospace;
+}
+
+.pwordInput {
+    padding: 15px;
+    margin-left: 10px;
+    margin-right: 10px;
+    font-size: 12pt;
+    border: 1px solid black;
+    border-radius: 15px;
+    font-family:'Courier New', Courier, monospace;
+}
+.title {
+    margin-top: 10px;
+    color : black;
+    text-align: center;
+    font-size: 15pt;
+    font-family:'Courier New', Courier, monospace;
+}
+
+.userButton {
+    margin : 10px;
+    padding: 10px;
+    border-radius: 15px;
+    font-size: 20px;
+    background-color: rgb(0, 77, 200);
+    color: white;
+    cursor: pointer;
+    font-family:'Courier New', Courier, monospace;
+}
+
+.inputBlock button:hover { 
+    background-color: rgb(7, 4, 238); 
+}
+
+.regLink {
+    text-align: center;
+    margin-top: -5px;
+    font-size: 12pt;
+    font-family:'Courier New', Courier, monospace;
+    color: black;
+}
+
+.clickLink {
+    border-color: transparent;
+    border-radius: 10px;
+    font-size: 12pt;
+    font-family:'Courier New', Courier, monospace;
+    margin-left: -5px;
+}
+
+.butContainer button:hover{
+    background-color: transparent;
+    color: rgb(7, 4, 238);
+    cursor: pointer;
+}
