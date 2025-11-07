@@ -15,10 +15,6 @@ class LLMAnalyzer:
     def __init__(self):
         """Initialize Gemini client."""
         api_key = os.getenv('GEMINI_API_KEY')
-        if (api_key): 
-            print("h")
-        else: 
-            print("s")
 
         if not api_key:
             raise ValueError("GEMINI_API_KEY not found in environment variables")
@@ -44,29 +40,21 @@ class LLMAnalyzer:
         Returns:
             Dictionary with structured data
         """
-        prompt = f"""
-You are a medical billing expert. Extract structured information from this medical bill.
+        prompt = f"""Extract from medical bill:
 
-Medical Bill Text:
-{raw_text}
+{raw_text[:2000]}
 
-Extract and return a JSON object with the following structure:
+Return JSON:
 {{
-  "patient_name": "patient full name or 'Not found'",
-  "date_of_service": "YYYY-MM-DD format or 'Not found'",
-  "provider_name": "provider/clinic name or 'Not found'",
-  "provider_address": "provider address or 'Not found'",
-  "charges": [
-    {{"item": "service/procedure name", "cost": numeric_value, "code": "procedure code if available"}}
-  ],
-  "total": numeric_total_amount,
-  "insurance_info": "insurance company and policy info or 'Not found'",
-  "patient_responsibility": numeric_amount_patient_owes
-}}
-
-Be precise with numbers. If information is missing, use "Not found" or 0 for numbers.
-Return ONLY the JSON object, no additional text.
-"""
+  "patient_name": "name or 'Not found'",
+  "date_of_service": "YYYY-MM-DD or 'Not found'",
+  "provider_name": "clinic name or 'Not found'",
+  "provider_address": "address or 'Not found'",
+  "charges": [{{"item": "service", "cost": number, "code": "code"}}],
+  "total": number,
+  "insurance_info": "insurance or 'Not found'",
+  "patient_responsibility": number
+}}"""
         
         try:
             # Create chat with system instruction
@@ -98,32 +86,17 @@ Return ONLY the JSON object, no additional text.
         Returns:
             Dictionary with analysis results
         """
-        prompt = f"""
-You are a medical billing auditor. Analyze this medical bill for potential issues.
+        prompt = f"""Analyze for: overcharges, duplicates, missing insurance adjustments, unbundling.
 
-Bill Data:
-{json.dumps(structured_data, indent=2)}
+{json.dumps(structured_data)}
 
-Identify:
-1. Charges that seem unusually high (compare to typical US healthcare costs)
-2. Duplicate charges for the same service
-3. Missing insurance adjustments or discounts
-4. Unbundled services that should be bundled
-5. Any other billing irregularities
-
-Return a JSON object with:
+Return JSON:
 {{
-  "issues": [
-    {{"type": "issue_type", "description": "detailed description", "item": "affected charge item", "severity": "low/medium/high"}}
-  ],
+  "issues": [{{"type": "type", "description": "desc", "item": "item", "severity": "low/medium/high"}}],
   "overall_severity": "low/medium/high",
-  "potential_savings": numeric_estimate_of_overcharges,
-  "recommendations": ["actionable recommendation 1", "actionable recommendation 2"]
-}}
-
-If no issues found, return empty issues array.
-Return ONLY the JSON object, no additional text.
-"""
+  "potential_savings": number,
+  "recommendations": ["rec1", "rec2"]
+}}"""
         
         try:
             # Create chat with system instruction
@@ -156,29 +129,16 @@ Return ONLY the JSON object, no additional text.
         Returns:
             Dictionary with summary and complaint template
         """
-        prompt = f"""
-You are a patient advocate helping someone understand their medical bill.
+        prompt = f"""Summarize bill and create dispute email if issues found.
 
-Bill Data:
-{json.dumps(structured_data, indent=2)}
+Bill: {json.dumps(structured_data)}
+Issues: {json.dumps(analysis_results)}
 
-Analysis Results:
-{json.dumps(analysis_results, indent=2)}
-
-Generate:
-1. A clear, friendly summary explaining the bill (2-3 paragraphs)
-2. If issues were found, a professional email template the patient can send to the billing department
-
-Return a JSON object:
+Return JSON:
 {{
-  "summary": "friendly summary text",
-  "complaint_email": "professional email template (or empty string if no issues)"
-}}
-
-The summary should be conversational and easy to understand.
-The email should be professional and specific about the issues found.
-Return ONLY the JSON object, no additional text.
-"""
+  "summary": "2-3 paragraph friendly summary",
+  "complaint_email": "professional email or empty string"
+}}"""
         
         try:
             # Create chat with system instruction

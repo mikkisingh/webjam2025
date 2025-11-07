@@ -98,16 +98,6 @@ function App() {
                 <p className="coming-soon">Backend hookup pending — connect endpoint later.</p>
               </article>
 
-              <article className="card">
-                <div className="card-icon" aria-hidden="true">🔎</div>
-                <h4>Document status</h4>
-                <p>Look up the review status by reference ID.</p>
-                <form className="inline-form" onSubmit={function(e){ e.preventDefault(); handleComingSoon(); }}>
-                  <input type="text" placeholder="Enter reference ID" aria-label="Reference ID" />
-                  <button className="button" type="submit">Check status</button>
-                </form>
-                <p className="coming-soon">Stub UI only — add fetch to your API.</p>
-              </article>
             </div>
           </div>
         </section>
@@ -136,7 +126,7 @@ function App() {
                   <input type="text" placeholder="e.g., MRI, CPT 70551" aria-label="Procedure" />
                   <button className="button primary" type="submit">Search</button>
                 </form>
-                <p className="coming-soon">Results table will render here.</p>
+
               </article>
 
               <article className="card">
@@ -147,7 +137,7 @@ function App() {
                   <input type="text" placeholder="ZIP or City" aria-label="Location" />
                   <button className="button" type="submit">Explore</button>
                 </form>
-                <p className="coming-soon">Hook to geosearch + pricing API.</p>
+
               </article>
             </div>
           </div>
