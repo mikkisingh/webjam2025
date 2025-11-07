@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
+import BillUpload from "./components/BillUpload";
+import BillAnalysis from "./components/BillAnalysis";
 
 function App() {
   const [year, setYear] = useState(new Date().getFullYear());
+  const [currentBillId, setCurrentBillId] = useState(null);
+  const [showAnalysis, setShowAnalysis] = useState(false);
 
   const toast = (msg) => {
     const t = document.createElement('div');
@@ -13,6 +17,17 @@ function App() {
       t.classList.remove('show'); 
       setTimeout(() => t.remove(), 200);
     }, 2400);
+  };
+
+  const handleUploadSuccess = (data) => {
+    toast(`File uploaded successfully! Analyzing...`);
+    setCurrentBillId(data.id);
+    setShowAnalysis(true);
+    
+    // Scroll to analysis section
+    setTimeout(() => {
+      document.getElementById('analysis')?.scrollIntoView({ behavior: 'smooth' });
+    }, 500);
   };
 
   const handleClick = (e) => {
@@ -37,7 +52,7 @@ function App() {
           <div className="container hero-inner">
             <h2 className="hero-title">Verify documents. Compare prices.</h2>
             <p className="hero-subtitle">
-              A simple, trustworthy place to check healthcare documents and explore fair pricing.
+              Upload your medical bill and get instant analysis. Detect overcharges, duplicate fees, and billing errors.
             </p>
             <div className="hero-cta">
               <a href="#documents" className="button primary">Check documents</a>
@@ -49,43 +64,41 @@ function App() {
         <section id="documents" className="section">
           <div className="container">
             <div className="section-head">
-              <h3>Document Check</h3>
-              <p>Upload and validate files for authenticity and completeness.</p>
+              <h3>Medical Bill Analysis</h3>
+              <p>Upload your medical bill for automated analysis and cost verification.</p>
             </div>
 
             <div className="card-grid">
-              <article className="card">
+              <article className="card upload-card">
                 <div className="card-icon" aria-hidden="true">📄</div>
-                <h4>Upload a document</h4>
-                <p>We'll scan and flag issues (missing fields, mismatched IDs, etc.).</p>
-
-                <form className="inline-form" onSubmit={(e) => e.preventDefault()}>
-                  <input type="file" aria-label="Choose document to check" />
-                  <button className="button primary" type="button" onClick={handleClick}>
-                    Check now
-                  </button>
-                </form>
-
-                <p className="coming-soon">Backend hookup pending — connect endpoint later.</p>
+                <h4>Upload Your Bill</h4>
+                <p>We'll extract text, analyze charges, and identify potential issues.</p>
+                
+                <BillUpload onUploadSuccess={handleUploadSuccess} />
               </article>
 
               <article className="card">
                 <div className="card-icon" aria-hidden="true">🔎</div>
-                <h4>Document status</h4>
-                <p>Look up the review status by reference ID.</p>
-
-                <form className="inline-form" onSubmit={(e) => e.preventDefault()}>
-                  <input type="text" placeholder="Enter reference ID" aria-label="Reference ID" />
-                  <button className="button" type="button" onClick={handleClick}>
-                    Check status
-                  </button>
-                </form>
-
-                <p className="coming-soon">Stub UI only — add fetch to your API.</p>
+                <h4>What We Check</h4>
+                <ul className="features-list">
+                  <li>✓ Duplicate charges</li>
+                  <li>✓ Overpriced services</li>
+                  <li>✓ Missing insurance adjustments</li>
+                  <li>✓ Unbundled procedures</li>
+                  <li>✓ Billing irregularities</li>
+                </ul>
               </article>
             </div>
           </div>
         </section>
+
+        {showAnalysis && currentBillId && (
+          <section id="analysis" className="section alt">
+            <div className="container">
+              <BillAnalysis billId={currentBillId} />
+            </div>
+          </section>
+        )}
 
         <section id="prices" className="section alt">
           <div className="container">
