@@ -77,17 +77,7 @@ function App() {
                 <BillUpload onUploadSuccess={handleUploadSuccess} />
               </article>
 
-              <article className="card">
-                <div className="card-icon" aria-hidden="true">🔎</div>
-                <h4>What We Check</h4>
-                <ul className="features-list">
-                  <li>✓ Duplicate charges</li>
-                  <li>✓ Overpriced services</li>
-                  <li>✓ Missing insurance adjustments</li>
-                  <li>✓ Unbundled procedures</li>
-                  <li>✓ Billing irregularities</li>
-                </ul>
-              </article>
+        
             </div>
           </div>
         </section>
@@ -120,7 +110,7 @@ function App() {
                   </button>
                 </form>
 
-                <p className="coming-soon">Results table will render here.</p>
+                {/* <p className="coming-soon">Results table will render here.</p> */}
               </article>
 
               <article className="card">
@@ -135,7 +125,6 @@ function App() {
                   </button>
                 </form>
 
-                <p className="coming-soon">Hook to geosearch + pricing API.</p>
               </article>
             </div>
           </div>
