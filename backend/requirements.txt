@@ -4,5 +4,6 @@ sqlalchemy
 pdfplumber
 pytesseract
 Pillow
-google-generativeai
+openai
 python-dotenv
+requests

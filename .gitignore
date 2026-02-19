@@ -15,7 +15,7 @@ build/
 *.sqlite3
 
 # Environment variables
-# .env
+.env
 
 # Uploaded files
 backend/uploads/*
@@ -41,6 +41,9 @@ dist-ssr/
 # OS
 Thumbs.db
 .DS_Store
+
+# Pipeline data (large CMS downloads)
+backend/pipeline_data/
 
 # Logs
 *.log
