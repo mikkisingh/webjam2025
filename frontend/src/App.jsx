@@ -193,6 +193,44 @@ function App() {
                 </div>
               </div>
             </section>
+
+            <section className="section pricing-section">
+              <div className="container">
+                <h2 className="section-title">Simple, transparent pricing</h2>
+                <p className="muted section-subtitle">Your first scan is free. No subscription required.</p>
+                <div className="pricing-cards pricing-cards--landing">
+                  <div className="pricing-card">
+                    <h3 className="pricing-name">1 Scan</h3>
+                    <div className="pricing-amount">$0.99</div>
+                    <div className="pricing-per-scan">$0.99/scan</div>
+                    <button className="button ghost pricing-buy-btn" onClick={() => user ? setPurchaseModalOpen(true) : openAuthModal('signup')}>
+                      Get Started
+                    </button>
+                  </div>
+                  <div className="pricing-card pricing-card--popular">
+                    <span className="pricing-badge">Save 10%</span>
+                    <h3 className="pricing-name">5-Pack</h3>
+                    <div className="pricing-amount">$4.49</div>
+                    <div className="pricing-per-scan">$0.90/scan</div>
+                    <button className="button primary pricing-buy-btn" onClick={() => user ? setPurchaseModalOpen(true) : openAuthModal('signup')}>
+                      Get Started
+                    </button>
+                  </div>
+                  <div className="pricing-card">
+                    <span className="pricing-badge">Best value</span>
+                    <h3 className="pricing-name">20-Pack</h3>
+                    <div className="pricing-amount">$14.99</div>
+                    <div className="pricing-per-scan">$0.75/scan</div>
+                    <button className="button ghost pricing-buy-btn" onClick={() => user ? setPurchaseModalOpen(true) : openAuthModal('signup')}>
+                      Get Started
+                    </button>
+                  </div>
+                </div>
+                <p className="muted" style={{ textAlign: 'center', marginTop: 16, fontSize: 13 }}>
+                  Price Explorer and Provider Search are always free.
+                </p>
+              </div>
+            </section>
           </div>
         )}
 
@@ -211,14 +249,29 @@ function App() {
                     <p className="muted">Upload a medical bill for instant AI-powered analysis. Your file is deleted the moment text is extracted.</p>
                   </div>
                 </div>
-                <BillUpload onUploadSuccess={handleUploadSuccess} />
-                {currentAnalysis && (
-                  <div style={{ marginTop: 32 }}>
-                    <BillAnalysis
-                      billData={currentAnalysis}
-                      onRequestAuth={() => openAuthModal('signup')}
-                    />
+
+                {!user ? (
+                  <div className="auth-gate">
+                    <div className="auth-gate-icon">🔒</div>
+                    <h3>Sign in to scan your bill</h3>
+                    <p className="muted">Create a free account to get started. Your first scan is free!</p>
+                    <div className="auth-gate-actions">
+                      <button className="button primary" onClick={() => openAuthModal('signup')}>Sign up free</button>
+                      <button className="button ghost" onClick={() => openAuthModal('signin')}>Already have an account? Sign in</button>
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    <BillUpload onUploadSuccess={handleUploadSuccess} onRequestAuth={() => openAuthModal('signup')} />
+                    {currentAnalysis && (
+                      <div style={{ marginTop: 32 }}>
+                        <BillAnalysis
+                          billData={currentAnalysis}
+                          onRequestAuth={() => openAuthModal('signup')}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>

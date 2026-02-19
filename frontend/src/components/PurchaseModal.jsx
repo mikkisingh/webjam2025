@@ -4,26 +4,29 @@ import { supabase } from '../lib/supabase'
 
 const PLANS = [
   {
+    id: 'single',
     name: '1 Scan',
     price: '$0.99',
     perScan: '$0.99/scan',
-    priceId: import.meta.env.VITE_STRIPE_PRICE_SINGLE,
+    priceId: import.meta.env.VITE_STRIPE_PRICE_SINGLE || '',
     credits: 1,
   },
   {
+    id: '5pack',
     name: '5-Pack',
     price: '$4.49',
     perScan: '$0.90/scan',
-    priceId: import.meta.env.VITE_STRIPE_PRICE_5PACK,
+    priceId: import.meta.env.VITE_STRIPE_PRICE_5PACK || '',
     credits: 5,
     popular: true,
     savings: 'Save 10%',
   },
   {
+    id: '20pack',
     name: '20-Pack',
     price: '$14.99',
     perScan: '$0.75/scan',
-    priceId: import.meta.env.VITE_STRIPE_PRICE_20PACK,
+    priceId: import.meta.env.VITE_STRIPE_PRICE_20PACK || '',
     credits: 20,
     savings: 'Best value',
   },
@@ -74,7 +77,7 @@ export default function PurchaseModal({ isOpen, onClose }) {
 
         <div className="pricing-cards">
           {PLANS.map((plan) => (
-            <div key={plan.priceId} className={`pricing-card ${plan.popular ? 'pricing-card--popular' : ''}`}>
+            <div key={plan.id} className={`pricing-card ${plan.popular ? 'pricing-card--popular' : ''}`}>
               {plan.savings && <span className="pricing-badge">{plan.savings}</span>}
               <h3 className="pricing-name">{plan.name}</h3>
               <div className="pricing-amount">{plan.price}</div>
