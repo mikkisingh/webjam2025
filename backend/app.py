@@ -1,6 +1,7 @@
 import os
 import logging
 import requests as http_requests
+import stripe
 from datetime import datetime
 from functools import wraps
 
@@ -51,6 +52,19 @@ Base.metadata.create_all(bind=engine)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+
+# ── Stripe config ─────────────────────────────────────────────
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+STRIPE_PRICE_MAP = {}
+for env_key, credits in [("STRIPE_PRICE_SINGLE", 1), ("STRIPE_PRICE_5PACK", 5), ("STRIPE_PRICE_20PACK", 20)]:
+    pid = os.getenv(env_key, "")
+    if pid:
+        STRIPE_PRICE_MAP[pid] = credits
+
+stripe.api_key = STRIPE_SECRET_KEY
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -111,6 +125,92 @@ def require_admin(f):
     return decorated
 
 
+# ── Supabase REST helpers (service_role key — bypasses RLS) ───
+
+def _sb_headers(content_type=None):
+    h = {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+    }
+    if content_type:
+        h["Content-Type"] = content_type
+    return h
+
+
+def supabase_rest_get(table, params):
+    resp = http_requests.get(
+        f"{SUPABASE_URL}/rest/v1/{table}",
+        headers={**_sb_headers(), "Accept": "application/json"},
+        params=params,
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def supabase_rest_upsert(table, data, on_conflict=None):
+    headers = {**_sb_headers("application/json"), "Prefer": "return=representation"}
+    params = {}
+    if on_conflict:
+        headers["Prefer"] += ",resolution=merge-duplicates"
+        params["on_conflict"] = on_conflict
+    resp = http_requests.post(
+        f"{SUPABASE_URL}/rest/v1/{table}",
+        headers=headers,
+        params=params,
+        json=data,
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def supabase_rest_patch(table, match_params, data):
+    resp = http_requests.patch(
+        f"{SUPABASE_URL}/rest/v1/{table}",
+        headers={**_sb_headers("application/json"), "Prefer": "return=representation"},
+        params=match_params,
+        json=data,
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def get_or_create_profile(user_id):
+    rows = supabase_rest_get("profiles", {"user_id": f"eq.{user_id}", "select": "*"})
+    if rows:
+        return rows[0]
+    created = supabase_rest_upsert("profiles", {"user_id": user_id}, on_conflict="user_id")
+    return created[0] if created else {
+        "user_id": user_id, "scan_credits": 0,
+        "free_scan_used": False, "total_scans": 0,
+    }
+
+
+def check_and_deduct_credit(user_id):
+    """Check if user can scan and deduct one credit. Returns (allowed, reason)."""
+    profile = get_or_create_profile(user_id)
+
+    if not profile["free_scan_used"]:
+        supabase_rest_patch(
+            "profiles",
+            {"user_id": f"eq.{user_id}"},
+            {"free_scan_used": True, "total_scans": profile["total_scans"] + 1},
+        )
+        return True, "free_scan"
+
+    if profile["scan_credits"] > 0:
+        supabase_rest_patch(
+            "profiles",
+            {"user_id": f"eq.{user_id}"},
+            {"scan_credits": profile["scan_credits"] - 1, "total_scans": profile["total_scans"] + 1},
+        )
+        return True, "credit"
+
+    return False, "no_credits"
+
+
 @app.route("/")
 def root():
     return jsonify({"message": "MediCheck API - Medical Bill Analysis"})
@@ -130,6 +230,15 @@ def root():
 def process_bill():
     filepath = None
     try:
+        # ── Credit gate ──
+        user_id = request.user.get("id")
+        allowed, reason = check_and_deduct_credit(user_id)
+        if not allowed:
+            return jsonify({
+                "error": "no_credits",
+                "message": "You have no scan credits remaining. Purchase credits to continue.",
+            }), 402
+
         if 'file' not in request.files:
             return jsonify({"error": "No file provided"}), 400
 
@@ -190,6 +299,115 @@ def process_bill():
                 os.remove(filepath)
             except OSError:
                 pass
+
+
+# ──────────────────────────────────────────────────────────────
+# /credits  — get current credit balance
+# ──────────────────────────────────────────────────────────────
+@app.route("/credits", methods=["GET"])
+@require_auth
+def get_credits():
+    user_id = request.user.get("id")
+    profile = get_or_create_profile(user_id)
+    return jsonify({
+        "scan_credits": profile["scan_credits"],
+        "free_scan_used": profile["free_scan_used"],
+        "total_scans": profile["total_scans"],
+    }), 200
+
+
+# ──────────────────────────────────────────────────────────────
+# /stripe/create-checkout-session  — initiate a credit purchase
+# ──────────────────────────────────────────────────────────────
+@app.route("/stripe/create-checkout-session", methods=["POST"])
+@limiter.limit("10 per minute")
+@require_auth
+def create_checkout_session():
+    if not STRIPE_SECRET_KEY:
+        return jsonify({"error": "Payments not configured"}), 503
+
+    data = request.get_json(silent=True) or {}
+    price_id = data.get("price_id", "")
+
+    if price_id not in STRIPE_PRICE_MAP:
+        return jsonify({"error": "Invalid price selected"}), 400
+
+    user_id = request.user.get("id")
+    user_email = request.user.get("email", "")
+
+    try:
+        session = stripe.checkout.Session.create(
+            mode="payment",
+            payment_method_types=["card"],
+            line_items=[{"price": price_id, "quantity": 1}],
+            success_url=f"{FRONTEND_URL}?payment=success",
+            cancel_url=f"{FRONTEND_URL}?payment=cancelled",
+            client_reference_id=user_id,
+            customer_email=user_email,
+            metadata={
+                "user_id": user_id,
+                "credits": str(STRIPE_PRICE_MAP[price_id]),
+                "price_id": price_id,
+            },
+        )
+        return jsonify({"checkout_url": session.url}), 200
+    except Exception:
+        logger.exception("Stripe checkout session creation failed")
+        return jsonify({"error": "Payment service error. Please try again."}), 502
+
+
+# ──────────────────────────────────────────────────────────────
+# /stripe/webhook  — Stripe calls this after payment completes
+# No auth decorator — signature verification provides authenticity
+# ──────────────────────────────────────────────────────────────
+@app.route("/stripe/webhook", methods=["POST"])
+def stripe_webhook():
+    payload = request.get_data(as_text=True)
+    sig_header = request.headers.get("Stripe-Signature", "")
+
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+    except ValueError:
+        return jsonify({"error": "Invalid payload"}), 400
+    except stripe.SignatureVerificationError:
+        return jsonify({"error": "Invalid signature"}), 400
+
+    if event["type"] == "checkout.session.completed":
+        session_obj = event["data"]["object"]
+        metadata = session_obj.get("metadata", {})
+        user_id = session_obj.get("client_reference_id") or metadata.get("user_id")
+        credits = int(metadata.get("credits", 0))
+        price_id = metadata.get("price_id", "")
+
+        if not user_id or credits <= 0:
+            logger.error("Webhook missing user_id or credits: %s", session_obj.get("id"))
+            return jsonify({"error": "Missing metadata"}), 400
+
+        try:
+            profile = get_or_create_profile(user_id)
+
+            supabase_rest_patch(
+                "profiles",
+                {"user_id": f"eq.{user_id}"},
+                {"scan_credits": profile["scan_credits"] + credits},
+            )
+
+            supabase_rest_upsert("purchases", {
+                "user_id": user_id,
+                "stripe_session_id": session_obj["id"],
+                "stripe_payment_intent": session_obj.get("payment_intent", ""),
+                "price_id": price_id,
+                "credits_purchased": credits,
+                "amount_cents": session_obj.get("amount_total", 0),
+                "status": "completed",
+            })
+
+            logger.info("Credited %d scans to user %s (session %s)", credits, user_id, session_obj["id"])
+        except Exception:
+            logger.exception("Failed to credit user %s", user_id)
+            return jsonify({"error": "Credit processing failed"}), 500
+
+    return jsonify({"received": True}), 200
 
 
 # ──────────────────────────────────────────────────────────────

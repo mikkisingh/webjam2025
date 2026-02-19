@@ -1622,3 +1622,158 @@ details[open] > .pe-details-summary::before { content: '▾ '; }
   .ps-submit { max-width: 100%; }
   .ps-grid { grid-template-columns: 1fr; }
 }
+
+
+/* ====== Credit Badge (header) ====== */
+.credit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(109, 211, 251, 0.12);
+  color: var(--brand);
+  border: 1px solid rgba(109, 211, 251, 0.25);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+.credit-badge:hover {
+  background: rgba(109, 211, 251, 0.2);
+  border-color: var(--brand);
+}
+
+
+/* ====== Credit Status (in BillUpload) ====== */
+.credit-status {
+  text-align: center;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.credit-status-free {
+  color: #6dd3fb;
+}
+.credit-status-paid {
+  color: #8bdf8a;
+}
+.credit-status-empty {
+  color: #f0a070;
+}
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--brand);
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: inherit;
+  font-weight: 600;
+  padding: 0;
+}
+.link-btn:hover {
+  color: var(--ring);
+}
+
+
+/* ====== Purchase Modal ====== */
+.purchase-modal {
+  max-width: 640px;
+  text-align: center;
+}
+.purchase-title {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+.purchase-subtitle {
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+.purchase-error {
+  color: #f06060;
+  font-size: 13px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: rgba(240, 96, 96, 0.1);
+  border-radius: 8px;
+}
+.purchase-footer {
+  font-size: 12px;
+  margin-top: 20px;
+}
+
+.pricing-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.pricing-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.pricing-card:hover {
+  border-color: rgba(109, 211, 251, 0.3);
+}
+.pricing-card--popular {
+  border-color: var(--brand);
+  box-shadow: 0 0 20px rgba(109, 211, 251, 0.15);
+}
+
+.pricing-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 12px;
+  border-radius: 10px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pricing-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+.pricing-amount {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+}
+.pricing-per-scan {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.pricing-buy-btn {
+  width: 100%;
+  margin-top: auto;
+}
+
+@media (max-width: 540px) {
+  .pricing-cards {
+    grid-template-columns: 1fr;
+    max-width: 280px;
+    margin: 0 auto;
+  }
+  .pricing-card--popular {
+    order: -1;
+  }
+}

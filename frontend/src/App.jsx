@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from './context/AuthContext'
+import { useCredits } from './context/CreditsContext'
 import { supabase } from './lib/supabase'
 import BillUpload from './components/BillUpload'
 import BillAnalysis from './components/BillAnalysis'
@@ -8,15 +9,17 @@ import AdminDashboard from './components/AdminDashboard'
 import AuthModal from './components/AuthModal'
 import PriceExplorer from './components/PriceExplorer'
 import ProviderSearch from './components/ProviderSearch'
+import PurchaseModal from './components/PurchaseModal'
 
 function App() {
   const { user, signOut, loading, isAdmin } = useAuth()
+  const { credits, freeScanUsed, refreshCredits } = useCredits()
   const [currentAnalysis, setCurrentAnalysis] = useState(null)
-  // 'main' | 'scan' | 'prices' | 'providers' | 'history' | 'history-detail' | 'admin'
   const [view, setView] = useState('main')
   const [historyAnalysis, setHistoryAnalysis] = useState(null)
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [authModalMode, setAuthModalMode] = useState('signin')
+  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false)
   const [publicStats, setPublicStats] = useState(null)
   const year = new Date().getFullYear()
 
@@ -24,6 +27,17 @@ function App() {
     supabase.rpc('get_public_stats').then(({ data }) => {
       if (data) setPublicStats(data)
     })
+
+    // Handle Stripe payment redirect
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('payment') === 'success') {
+      toast('Payment successful! Credits added to your account.')
+      refreshCredits()
+      window.history.replaceState({}, '', window.location.pathname)
+    } else if (params.get('payment') === 'cancelled') {
+      toast('Payment cancelled.')
+      window.history.replaceState({}, '', window.location.pathname)
+    }
   }, [])
 
   const navigateTo = (newView) => {
@@ -95,6 +109,13 @@ function App() {
                   onClick={() => navigateTo('history')}
                 >
                   History
+                </button>
+                <button
+                  className="credit-badge"
+                  onClick={() => setPurchaseModalOpen(true)}
+                  title="Scan credits — click to purchase"
+                >
+                  {credits === null ? '...' : !freeScanUsed ? '1 free' : `${credits} credit${credits !== 1 ? 's' : ''}`}
                 </button>
                 <div className="user-avatar" title={user.email}>
                   {user.email[0].toUpperCase()}
@@ -356,6 +377,10 @@ function App() {
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         initialMode={authModalMode}
+      />
+      <PurchaseModal
+        isOpen={purchaseModalOpen}
+        onClose={() => setPurchaseModalOpen(false)}
       />
     </>
   )

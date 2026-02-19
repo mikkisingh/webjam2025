@@ -142,6 +142,75 @@ $$;
 grant execute on function get_admin_stats() to authenticated;
 
 -- ============================================================
+-- PROFILES TABLE — credit balance and usage tracking
+-- Backend (service_role) writes credits; frontend can only read.
+-- ============================================================
+create table if not exists profiles (
+  user_id         uuid references auth.users(id) on delete cascade primary key,
+  scan_credits    integer default 0 not null,
+  free_scan_used  boolean default false not null,
+  total_scans     integer default 0 not null,
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now()
+);
+
+alter table profiles enable row level security;
+
+create policy "Users can view their own profile"
+  on profiles for select
+  using (auth.uid() = user_id);
+
+-- No INSERT/UPDATE/DELETE policies for authenticated role.
+-- Only the backend service_role key (which bypasses RLS) can modify credits.
+
+-- ============================================================
+-- PURCHASES TABLE — Stripe transaction history
+-- ============================================================
+create table if not exists purchases (
+  id                    uuid default uuid_generate_v4() primary key,
+  user_id               uuid references auth.users(id) on delete cascade not null,
+  stripe_session_id     text unique not null,
+  stripe_payment_intent text,
+  price_id              text not null,
+  credits_purchased     integer not null,
+  amount_cents          integer not null,
+  status                text default 'completed' not null,
+  created_at            timestamptz default now()
+);
+
+alter table purchases enable row level security;
+
+create policy "Users can view their own purchases"
+  on purchases for select
+  using (auth.uid() = user_id);
+
+-- ============================================================
+-- AUTO-CREATE PROFILE ON SIGNUP
+-- ============================================================
+create or replace function handle_new_user()
+returns trigger language plpgsql security definer as $$
+begin
+  insert into public.profiles (user_id)
+  values (new.id)
+  on conflict (user_id) do nothing;
+  return new;
+end;
+$$;
+
+-- Drop trigger if exists to make this idempotent
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function handle_new_user();
+
+-- ============================================================
+-- BACKFILL PROFILES FOR EXISTING USERS
+-- ============================================================
+insert into profiles (user_id)
+select id from auth.users
+on conflict (user_id) do nothing;
+
+-- ============================================================
 -- GRANT FIRST ADMIN
 -- Run once in SQL Editor, replacing the email below.
 -- After this, other admins can be promoted via the app UI.

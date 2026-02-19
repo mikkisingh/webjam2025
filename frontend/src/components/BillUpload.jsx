@@ -1,12 +1,18 @@
 import { useState, useCallback } from 'react'
 import { API_URL } from '../lib/api'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
+import { useCredits } from '../context/CreditsContext'
+import PurchaseModal from './PurchaseModal'
 
-function BillUpload({ onUploadSuccess }) {
+function BillUpload({ onUploadSuccess, onRequestAuth }) {
+  const { user } = useAuth()
+  const { canScan, freeScanUsed, credits, refreshCredits } = useCredits()
   const [file, setFile] = useState(null)
   const [processing, setProcessing] = useState(false)
   const [dragActive, setDragActive] = useState(false)
   const [error, setError] = useState(null)
+  const [showPurchase, setShowPurchase] = useState(false)
 
   const handleDrag = useCallback((e) => {
     e.preventDefault()
@@ -57,6 +63,16 @@ function BillUpload({ onUploadSuccess }) {
   const handleProcess = async () => {
     if (!file) { setError('Please select a file first'); return }
 
+    if (!user) {
+      if (onRequestAuth) onRequestAuth()
+      return
+    }
+
+    if (!canScan) {
+      setShowPurchase(true)
+      return
+    }
+
     setProcessing(true)
     setError(null)
 
@@ -64,7 +80,6 @@ function BillUpload({ onUploadSuccess }) {
     formData.append('file', file)
 
     try {
-      // Get auth token for the request
       const { data: { session } } = await supabase.auth.getSession()
       const headers = {}
       if (session?.access_token) {
@@ -85,11 +100,18 @@ function BillUpload({ onUploadSuccess }) {
         )
       }
 
+      // 402 = no credits
+      if (response.status === 402) {
+        setShowPurchase(true)
+        return
+      }
+
       if (!response.ok) {
         throw new Error(data.error || 'Processing failed')
       }
 
       setFile(null)
+      await refreshCredits()
       if (onUploadSuccess) onUploadSuccess(data)
 
     } catch (err) {
@@ -101,6 +123,23 @@ function BillUpload({ onUploadSuccess }) {
 
   return (
     <div className="bill-upload">
+      {/* Credit status banner */}
+      {user && (
+        <div className="credit-status">
+          {!freeScanUsed ? (
+            <span className="credit-status-free">You have 1 free scan available</span>
+          ) : credits > 0 ? (
+            <span className="credit-status-paid">{credits} scan credit{credits !== 1 ? 's' : ''} remaining</span>
+          ) : (
+            <span className="credit-status-empty">
+              No scan credits —{' '}
+              <button className="link-btn" onClick={() => setShowPurchase(true)}>purchase credits</button>
+              {' '}to analyze a bill
+            </span>
+          )}
+        </div>
+      )}
+
       <div
         className={`drop-zone ${dragActive ? 'active' : ''} ${file ? 'has-file' : ''}`}
         onDragEnter={handleDrag}
@@ -135,7 +174,7 @@ function BillUpload({ onUploadSuccess }) {
         )}
       </div>
 
-      {error && <div className="error-message">⚠️ {error}</div>}
+      {error && <div className="error-message">{error}</div>}
 
       {file && (
         <button
@@ -148,9 +187,11 @@ function BillUpload({ onUploadSuccess }) {
               <span className="processing-dot" />
               Uploading & analyzing...
             </span>
-          ) : 'Upload & Analyze'}
+          ) : !user ? 'Sign in to Analyze' : !canScan ? 'Buy Credits to Analyze' : 'Upload & Analyze'}
         </button>
       )}
+
+      <PurchaseModal isOpen={showPurchase} onClose={() => setShowPurchase(false)} />
     </div>
   )
 }
