@@ -18,6 +18,7 @@ function BillHistory({ onBack, onViewAnalysis }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   useEffect(() => {
     fetchAnalyses()
@@ -38,9 +39,13 @@ function BillHistory({ onBack, onViewAnalysis }) {
     setLoading(false)
   }
 
-  const handleDelete = async (id, e) => {
+  const handleDeleteClick = (id, e) => {
     e.stopPropagation()
-    if (!confirm('Delete this analysis? This cannot be undone.')) return
+    setConfirmDeleteId(id)
+  }
+
+  const handleDeleteConfirm = async (id) => {
+    setConfirmDeleteId(null)
     setDeletingId(id)
     const { error } = await supabase.from('analyses').delete().eq('id', id)
     if (!error) {
@@ -174,14 +179,33 @@ function BillHistory({ onBack, onViewAnalysis }) {
                       <option value="resolved">Resolved</option>
                       <option value="rejected">Rejected</option>
                     </select>
-                    <button
-                      className="history-delete-btn"
-                      onClick={e => handleDelete(analysis.id, e)}
-                      disabled={deletingId === analysis.id}
-                      title="Delete"
-                    >
-                      {deletingId === analysis.id ? '...' : '✕'}
-                    </button>
+                    {confirmDeleteId === analysis.id ? (
+                      <span className="history-confirm-delete" onClick={e => e.stopPropagation()}>
+                        <button
+                          className="button ghost"
+                          style={{ fontSize: 12, padding: '4px 8px' }}
+                          onClick={() => setConfirmDeleteId(null)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="button ghost"
+                          style={{ fontSize: 12, padding: '4px 8px', color: '#e53935' }}
+                          onClick={() => handleDeleteConfirm(analysis.id)}
+                        >
+                          Delete
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        className="history-delete-btn"
+                        onClick={e => handleDeleteClick(analysis.id, e)}
+                        disabled={deletingId === analysis.id}
+                        aria-label="Delete analysis"
+                      >
+                        {deletingId === analysis.id ? '...' : '✕'}
+                      </button>
+                    )}
                   </div>
                 </div>
               )

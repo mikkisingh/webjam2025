@@ -280,11 +280,75 @@ function App() {
             <AdminDashboard onBack={() => navigateTo('main')} />
           </div>
         )}
+
+        {/* ── Privacy Policy ── */}
+        {view === 'privacy' && (
+          <div className="view-container">
+            <div className="section">
+              <div className="container legal-page">
+                <button className="back-btn" onClick={() => navigateTo('main')}>← Back to Home</button>
+                <h2>Privacy Policy</h2>
+                <p className="muted">Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+
+                <h3>What We Collect</h3>
+                <p>When you create an account, we store your email address and authentication credentials via Supabase. If you choose to save an analysis, we store the analysis results (structured data, issues found, and summary) linked to your account.</p>
+
+                <h3>Bill Processing</h3>
+                <p>When you upload a bill for analysis, the file is processed in-memory and <strong>deleted immediately</strong> after text extraction. We do not retain, store, or log the original file or its raw text content on our servers.</p>
+
+                <h3>Third-Party Services</h3>
+                <p>Extracted text is sent to OpenAI for analysis. OpenAI's data usage policies apply to that processing. We also use Supabase for authentication and data storage, and CMS public APIs for price and provider data.</p>
+
+                <h3>Data Retention</h3>
+                <p>Saved analyses are retained until you delete them. You can delete any analysis from your History page at any time. Account deletion requests can be sent to the site administrator.</p>
+
+                <h3>No Tracking</h3>
+                <p>We do not use cookies for tracking, advertising pixels, or third-party analytics. We do not sell or share your data with third parties for marketing purposes.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Terms of Service ── */}
+        {view === 'terms' && (
+          <div className="view-container">
+            <div className="section">
+              <div className="container legal-page">
+                <button className="back-btn" onClick={() => navigateTo('main')}>← Back to Home</button>
+                <h2>Terms of Service</h2>
+                <p className="muted">Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+
+                <h3>Service Description</h3>
+                <p>MediCheck is an AI-powered tool that analyzes medical bills for potential billing errors, overcharges, and provides price comparisons using public Medicare data. The service is provided "as is" without warranty.</p>
+
+                <h3>Not Professional Advice</h3>
+                <p><strong>MediCheck does not provide medical, legal, or financial advice.</strong> Analysis results are AI-generated estimates based on public pricing data and should be used for informational purposes only. Always consult your healthcare provider, insurer, or a billing advocate for definitive guidance on your bills.</p>
+
+                <h3>Accuracy</h3>
+                <p>While we strive for accuracy, AI analysis may contain errors. Medicare pricing data is sourced from CMS public datasets and may not reflect your specific insurance plan, geographic area, or negotiated rates. You should verify all information independently.</p>
+
+                <h3>User Responsibilities</h3>
+                <p>You are responsible for the accuracy of files you upload. Do not upload documents containing information about other individuals without their consent. You agree not to use the service for any unlawful purpose or to abuse the API.</p>
+
+                <h3>Limitation of Liability</h3>
+                <p>MediCheck and its operators shall not be liable for any direct, indirect, incidental, or consequential damages arising from use of this service, including but not limited to financial decisions made based on analysis results.</p>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       <footer className="site-footer">
         <div className="container footer-inner">
           <p className="muted">© {year} MediCheck. Your bill is never stored on our servers.</p>
+          <p className="muted footer-disclaimer">
+            This tool provides informational estimates only and is not medical, legal, or financial advice. Always consult your provider or insurer for billing questions.
+          </p>
+          <div className="footer-links">
+            <button className="footer-link" onClick={() => navigateTo('privacy')}>Privacy Policy</button>
+            <span className="footer-sep">·</span>
+            <button className="footer-link" onClick={() => navigateTo('terms')}>Terms of Service</button>
+          </div>
         </div>
       </footer>
 

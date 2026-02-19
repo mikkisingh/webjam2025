@@ -46,9 +46,12 @@ function BillAnalysis({ billData, onRequestAuth, fromHistory = false }) {
     return map[severity?.toLowerCase()] || 'severity-low'
   }
 
+  const [copyFeedback, setCopyFeedback] = useState(false)
+
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text)
-    alert('Copied to clipboard!')
+    setCopyFeedback(true)
+    setTimeout(() => setCopyFeedback(false), 2000)
   }
 
   return (
@@ -114,29 +117,64 @@ function BillAnalysis({ billData, onRequestAuth, fromHistory = false }) {
         </div>
       </section>
 
-      {/* Charges Table */}
+      {/* Charge Assessments */}
       <section className="analysis-section charges-section">
-        <h3>Charges Breakdown</h3>
-        <div className="charges-table">
-          <table>
-            <thead>
-              <tr>
-                <th>Item / Service</th>
-                <th>Code</th>
-                <th>Cost</th>
-              </tr>
-            </thead>
-            <tbody>
-              {structured_data.charges?.map((charge, i) => (
-                <tr key={i}>
-                  <td>{charge.item}</td>
-                  <td>{charge.code || 'N/A'}</td>
-                  <td className="charge-cost">${charge.cost?.toFixed(2) || '0.00'}</td>
+        <h3>Charges Breakdown & Assessment</h3>
+        {analysis_results.charge_assessments?.length > 0 ? (
+          <div className="charge-assessments">
+            {analysis_results.charge_assessments.map((ca, i) => {
+              const statusClass = {
+                fair: 'ca-fair', high: 'ca-high', overcharged: 'ca-overcharged',
+                low: 'ca-low', unclear: 'ca-unclear',
+              }[ca.status] || 'ca-unclear'
+              const statusLabel = {
+                fair: 'Fair', high: 'Above Average', overcharged: 'Overcharged',
+                low: 'Below Average', unclear: 'Unclear',
+              }[ca.status] || 'Unclear'
+              return (
+                <div key={i} className={`ca-card ${statusClass}`}>
+                  <div className="ca-header">
+                    <span className="ca-item">{ca.item}</span>
+                    <span className={`ca-status-badge ${statusClass}`}>{statusLabel}</span>
+                  </div>
+                  <div className="ca-price-row">
+                    <span className="ca-charged">
+                      Charged: <strong>${ca.charged_amount?.toFixed(2) || '—'}</strong>
+                    </span>
+                    {ca.typical_range_low != null && ca.typical_range_high != null && (
+                      <span className="ca-range">
+                        Typical: ${ca.typical_range_low?.toFixed(0)}–${ca.typical_range_high?.toFixed(0)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="ca-assessment">{ca.assessment}</p>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          /* Fallback to simple table if no charge_assessments */
+          <div className="charges-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Item / Service</th>
+                  <th>Code</th>
+                  <th>Cost</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {structured_data.charges?.map((charge, i) => (
+                  <tr key={i}>
+                    <td>{charge.item}</td>
+                    <td>{charge.code || 'N/A'}</td>
+                    <td className="charge-cost">${charge.cost?.toFixed(2) || '0.00'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       {/* Issues */}
@@ -194,7 +232,7 @@ function BillAnalysis({ billData, onRequestAuth, fromHistory = false }) {
             <pre>{complaint_email}</pre>
           </div>
           <button className="button primary" onClick={() => copyToClipboard(complaint_email)}>
-            Copy Email Template
+            {copyFeedback ? 'Copied!' : 'Copy Email Template'}
           </button>
         </section>
       )}

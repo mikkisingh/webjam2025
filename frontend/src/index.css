@@ -239,8 +239,21 @@ p{margin:0 0 14px}
 
 /* ====== Footer ====== */
 .site-footer{border-top:1px solid var(--card-border); margin-top:28px; padding:18px 0}
-.footer-inner{display:flex; justify-content:center}
+.footer-inner{display:flex; flex-direction:column; align-items:center; text-align:center; gap:4px}
+.footer-disclaimer{ font-size:12px; opacity:0.7; max-width:600px }
+.footer-links{ display:flex; gap:8px; align-items:center; margin-top:6px }
+.footer-link{ background:none; border:none; color:var(--muted); font-size:12px; cursor:pointer; text-decoration:underline; padding:0 }
+.footer-link:hover{ color:var(--text) }
+.footer-sep{ color:var(--muted); font-size:12px }
+
+.legal-page{ max-width:720px; margin:0 auto }
+.legal-page h2{ margin-bottom:8px }
+.legal-page h3{ margin-top:24px; margin-bottom:8px; font-size:17px }
+.legal-page p{ color:var(--muted); line-height:1.7; margin-bottom:12px }
+
 .muted{color:var(--muted)}
+
+.history-confirm-delete{ display:flex; gap:4px; align-items:center }
 
 /* ====== Toast (demo only) ====== */
 .toast{
@@ -480,6 +493,52 @@ p{margin:0 0 14px}
 .charge-cost {
   font-weight: 600;
   text-align: right;
+}
+
+/* ── Charge assessment cards ── */
+.charge-assessments { display: flex; flex-direction: column; gap: 12px; }
+
+.ca-card {
+  background: var(--panel);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 16px;
+  border-left: 4px solid var(--muted);
+}
+.ca-card.ca-fair      { border-left-color: #4caf50; }
+.ca-card.ca-low       { border-left-color: #2196f3; }
+.ca-card.ca-high      { border-left-color: #ff9800; }
+.ca-card.ca-overcharged{ border-left-color: #f44336; }
+.ca-card.ca-unclear    { border-left-color: #9e9e9e; }
+
+.ca-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 8px;
+}
+.ca-item { font-weight: 600; font-size: 15px; color: var(--text); }
+
+.ca-status-badge {
+  padding: 3px 10px; border-radius: 20px; font-size: 11px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.ca-status-badge.ca-fair       { background: color-mix(in oklab, #4caf50 20%, var(--panel)); color: #4caf50; }
+.ca-status-badge.ca-low        { background: color-mix(in oklab, #2196f3 20%, var(--panel)); color: #2196f3; }
+.ca-status-badge.ca-high       { background: color-mix(in oklab, #ff9800 20%, var(--panel)); color: #ff9800; }
+.ca-status-badge.ca-overcharged{ background: color-mix(in oklab, #f44336 20%, var(--panel)); color: #f44336; }
+.ca-status-badge.ca-unclear    { background: color-mix(in oklab, #9e9e9e 20%, var(--panel)); color: #9e9e9e; }
+
+.ca-price-row {
+  display: flex; gap: 20px; font-size: 14px; color: var(--muted);
+  margin-bottom: 8px;
+}
+.ca-price-row strong { color: var(--text); }
+.ca-range {
+  background: var(--panel-alt); padding: 2px 8px; border-radius: 6px;
+  font-size: 13px;
+}
+
+.ca-assessment {
+  font-size: 14px; line-height: 1.6; color: var(--muted); margin: 0;
 }
 
 .severity-badge {

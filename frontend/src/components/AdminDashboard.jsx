@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { API_URL } from '../lib/api'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer
 } from 'recharts'
@@ -70,7 +71,7 @@ function AdminDashboard({ onBack }) {
       const jwt = session?.access_token
       if (!jwt) throw new Error('Not authenticated')
 
-      const resp = await fetch('http://localhost:5001/admin/promote', {
+      const resp = await fetch(`${API_URL}/admin/promote`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

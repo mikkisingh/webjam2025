@@ -1,4 +1,6 @@
 import { useState, useCallback } from 'react'
+import { API_URL } from '../lib/api'
+import { supabase } from '../lib/supabase'
 
 function BillUpload({ onUploadSuccess }) {
   const [file, setFile] = useState(null)
@@ -62,12 +64,26 @@ function BillUpload({ onUploadSuccess }) {
     formData.append('file', file)
 
     try {
-      const response = await fetch('http://localhost:5001/process', {
+      // Get auth token for the request
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers = {}
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+
+      const response = await fetch(`${API_URL}/process`, {
         method: 'POST',
+        headers,
         body: formData,
       })
 
       const data = await response.json()
+
+      if (data.rejected) {
+        throw new Error(
+          `This doesn't appear to be a medical bill — it looks like a ${data.document_type || 'non-medical document'}. ${data.reason || 'Please upload a medical, dental, or pharmacy bill.'}`
+        )
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Processing failed')

@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001'
+import { API_URL } from '../lib/api'
 
 const US_STATES = [
   '', 'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',

@@ -1,20 +1,43 @@
-from flask import Flask, jsonify, request
-from flask_cors import CORS
-from database import Base, engine, SessionLocal
-from models import Item, Procedure, HcpcsCode, Icd10Procedure, MedicareUtilization, DataSyncLog
-from text_extractor import TextExtractor
-from llm_service import LLMAnalyzer
 import os
+import logging
 import requests as http_requests
 from datetime import datetime
+from functools import wraps
+
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from sqlalchemy import or_, func
 
+from database import Base, engine, SessionLocal
+from models import Procedure, HcpcsCode, Icd10Procedure, MedicareUtilization, DataSyncLog
+from text_extractor import TextExtractor
+from llm_service import LLMAnalyzer
+
 load_dotenv()
 
+# ── Logging ──────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("medicheck")
+
+# ── App setup ────────────────────────────────────────────────
 app = Flask(__name__)
-CORS(app)
+
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+CORS(app, origins=ALLOWED_ORIGINS)
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["120 per minute"],
+    storage_uri="memory://",
+)
 
 # Configuration
 UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'uploads')
@@ -26,9 +49,66 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 Base.metadata.create_all(bind=engine)
 
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+
+
+# ── Helpers ──────────────────────────────────────────────────
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def _escape_like(q):
+    """Escape SQL LIKE wildcards in user input."""
+    return q.replace('%', r'\%').replace('_', r'\_')
+
+
+def verify_supabase_jwt():
+    """Verify the caller's Supabase JWT and return user dict or None."""
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+    jwt = auth_header.split(" ", 1)[1]
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return None
+    try:
+        resp = http_requests.get(
+            f"{SUPABASE_URL}/auth/v1/user",
+            headers={"Authorization": f"Bearer {jwt}", "apikey": SUPABASE_SERVICE_KEY},
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            return resp.json()
+    except Exception:
+        logger.exception("JWT verification failed")
+    return None
+
+
+def require_auth(f):
+    """Decorator that requires a valid Supabase JWT."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        user = verify_supabase_jwt()
+        if not user:
+            return jsonify({"error": "Authentication required"}), 401
+        request.user = user
+        return f(*args, **kwargs)
+    return decorated
+
+
+def require_admin(f):
+    """Decorator that requires admin role."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        user = verify_supabase_jwt()
+        if not user:
+            return jsonify({"error": "Authentication required"}), 401
+        if user.get("app_metadata", {}).get("role") != "admin":
+            return jsonify({"error": "Admin access required"}), 403
+        request.user = user
+        return f(*args, **kwargs)
+    return decorated
 
 
 @app.route("/")
@@ -37,13 +117,16 @@ def root():
 
 
 # ──────────────────────────────────────────────────────────────
-# /process  — HIPAA Option A single-step endpoint
+# /process  — single-step bill analysis endpoint
 #
 # Flow: receive file → extract text → DELETE file immediately
-#       → run Gemini analysis → return results
+#       → run OpenAI analysis → return results
 #       Nothing is persisted on this server.
+# Requires: valid Supabase JWT
 # ──────────────────────────────────────────────────────────────
 @app.route("/process", methods=["POST"])
+@limiter.limit("10 per minute")
+@require_auth
 def process_bill():
     filepath = None
     try:
@@ -73,16 +156,24 @@ def process_bill():
 
         # ── Delete file immediately after extraction ──
         os.remove(filepath)
-        filepath = None  # prevent double-deletion in finally block
+        filepath = None
 
         if not raw_text or not raw_text.strip():
             return jsonify({"error": "Could not extract text from this file. Try a clearer image or a text-based PDF."}), 422
 
         # Run full AI analysis pipeline
+        logger.info("Analyzing bill for user %s", request.user.get("id", "unknown"))
         analyzer = LLMAnalyzer()
         results = analyzer.analyze_bill(raw_text)
 
-        # Return results — nothing stored server-side
+        # Check if document was rejected (not a medical bill)
+        if results.get("rejected"):
+            return jsonify({
+                "rejected": True,
+                "document_type": results.get("document_type", "unknown"),
+                "reason": results.get("reason", "This does not appear to be a medical bill."),
+            }), 422
+
         return jsonify({
             "structured_data": results['structured_data'],
             "analysis_results": results['analysis_results'],
@@ -91,9 +182,9 @@ def process_bill():
         }), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.exception("process_bill error")
+        return jsonify({"error": "An internal error occurred. Please try again."}), 500
     finally:
-        # Safety net: ensure file is deleted even if an error occurred mid-way
         if filepath and os.path.exists(filepath):
             try:
                 os.remove(filepath)
@@ -103,85 +194,63 @@ def process_bill():
 
 # ──────────────────────────────────────────────────────────────
 # /admin/promote  — grant admin role to a user by email
-#
-# Requires: SUPABASE_URL and SUPABASE_SERVICE_KEY in .env
-# The caller must be an authenticated admin (verified via JWT).
 # ──────────────────────────────────────────────────────────────
 @app.route("/admin/promote", methods=["POST"])
+@limiter.limit("5 per minute")
+@require_admin
 def admin_promote():
-    supabase_url = os.getenv("SUPABASE_URL", "").rstrip("/")
-    service_key  = os.getenv("SUPABASE_SERVICE_KEY", "")
-
-    if not supabase_url or not service_key:
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
         return jsonify({"error": "Admin promotion not configured on this server"}), 503
 
-    # 1. Verify caller is authenticated and is an admin
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        return jsonify({"error": "Unauthorized"}), 401
-
-    caller_jwt = auth_header.split(" ", 1)[1]
-    verify_resp = http_requests.get(
-        f"{supabase_url}/auth/v1/user",
-        headers={"Authorization": f"Bearer {caller_jwt}", "apikey": service_key},
-        timeout=10,
-    )
-    if verify_resp.status_code != 200:
-        return jsonify({"error": "Unauthorized"}), 401
-
-    caller = verify_resp.json()
-    if caller.get("app_metadata", {}).get("role") != "admin":
-        return jsonify({"error": "Admin access required"}), 403
-
-    # 2. Find target user by email
     data = request.get_json(silent=True) or {}
     email = data.get("email", "").strip()
     if not email:
         return jsonify({"error": "email is required"}), 400
 
-    list_resp = http_requests.get(
-        f"{supabase_url}/auth/v1/admin/users",
-        headers={"Authorization": f"Bearer {service_key}", "apikey": service_key},
-        params={"filter": email},
-        timeout=10,
-    )
-    if list_resp.status_code != 200:
-        return jsonify({"error": "Failed to query users"}), 500
+    try:
+        list_resp = http_requests.get(
+            f"{SUPABASE_URL}/auth/v1/admin/users",
+            headers={"Authorization": f"Bearer {SUPABASE_SERVICE_KEY}", "apikey": SUPABASE_SERVICE_KEY},
+            params={"filter": email},
+            timeout=10,
+        )
+        if list_resp.status_code != 200:
+            return jsonify({"error": "Failed to query users"}), 500
 
-    users = list_resp.json().get("users", [])
-    target = next((u for u in users if u.get("email") == email), None)
-    if not target:
-        return jsonify({"error": f"No user found with email: {email}"}), 404
+        users = list_resp.json().get("users", [])
+        target = next((u for u in users if u.get("email") == email), None)
+        if not target:
+            return jsonify({"error": f"No user found with email: {email}"}), 404
 
-    # 3. Merge admin role into target's app_metadata
-    app_metadata = target.get("app_metadata") or {}
-    app_metadata["role"] = "admin"
+        app_metadata = target.get("app_metadata") or {}
+        app_metadata["role"] = "admin"
 
-    update_resp = http_requests.put(
-        f"{supabase_url}/auth/v1/admin/users/{target['id']}",
-        headers={
-            "Authorization": f"Bearer {service_key}",
-            "apikey": service_key,
-            "Content-Type": "application/json",
-        },
-        json={"app_metadata": app_metadata},
-        timeout=10,
-    )
-    if update_resp.status_code != 200:
-        return jsonify({"error": "Failed to update user role"}), 500
+        update_resp = http_requests.put(
+            f"{SUPABASE_URL}/auth/v1/admin/users/{target['id']}",
+            headers={
+                "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+                "apikey": SUPABASE_SERVICE_KEY,
+                "Content-Type": "application/json",
+            },
+            json={"app_metadata": app_metadata},
+            timeout=10,
+        )
+        if update_resp.status_code != 200:
+            return jsonify({"error": "Failed to update user role"}), 500
 
-    return jsonify({"success": True, "email": email}), 200
+        logger.info("Admin promoted user %s by %s", email, request.user.get("id"))
+        return jsonify({"success": True, "email": email}), 200
+
+    except Exception as e:
+        logger.exception("admin_promote error")
+        return jsonify({"error": "An internal error occurred."}), 500
 
 
 # ──────────────────────────────────────────────────────────────
 # /procedures/search  — search procedure cost database
-#
-# Query params:
-#   q        (str)  — free-text search on code or description
-#   category (str)  — filter by category (optional)
-#   limit    (int)  — max results, default 20, max 100
 # ──────────────────────────────────────────────────────────────
 @app.route("/procedures/search", methods=["GET"])
+@limiter.limit("60 per minute")
 def procedures_search():
     q = request.args.get("q", "").strip()
     category = request.args.get("category", "").strip()
@@ -196,7 +265,7 @@ def procedures_search():
         query = db.query(Procedure).filter(Procedure.modifier == "")
 
         if q:
-            pattern = f"%{q}%"
+            pattern = f"%{_escape_like(q)}%"
             query = query.filter(
                 or_(
                     func.lower(Procedure.cpt_code).like(func.lower(pattern)),
@@ -210,7 +279,6 @@ def procedures_search():
                 func.lower(Procedure.category) == category.lower()
             )
 
-        # Sort so priced procedures appear first
         results = query.order_by(
             Procedure.medicare_rate.is_(None).asc(),
             Procedure.category,
@@ -292,7 +360,6 @@ def procedures_categories():
             .order_by(Procedure.category)
             .all()
         )
-        # Only return categories where at least 20% of codes have pricing
         return jsonify({
             "categories": [
                 cat for cat, total, priced in cats
@@ -305,14 +372,11 @@ def procedures_categories():
 
 # ──────────────────────────────────────────────────────────────
 # /providers/search  — find healthcare providers by ZIP / city
-#
-# Proxies the free CMS NPPES NPI Registry API so the browser
-# doesn't hit CORS issues.
-# https://npiregistry.cms.hhs.gov/api-page
 # ──────────────────────────────────────────────────────────────
 NPPES_URL = "https://npiregistry.cms.hhs.gov/api/"
 
 @app.route("/providers/search", methods=["GET"])
+@limiter.limit("30 per minute")
 def providers_search():
     zip_code  = request.args.get("zip", "").strip()
     city      = request.args.get("city", "").strip()
@@ -330,10 +394,9 @@ def providers_search():
     params = {
         "version": "2.1",
         "limit":   limit,
-        "enumeration_type": "NPI-1",   # individual providers only
+        "enumeration_type": "NPI-1",
     }
     if zip_code:
-        # NPPES wants exact 5-digit or wildcard — support partial with *
         params["postal_code"] = zip_code[:5] + "*" if len(zip_code) >= 5 else zip_code + "*"
     if city:
         params["city"] = city
@@ -346,8 +409,9 @@ def providers_search():
         resp = http_requests.get(NPPES_URL, params=params, timeout=15)
         resp.raise_for_status()
         data = resp.json()
-    except Exception as e:
-        return jsonify({"error": f"NPPES API error: {str(e)}"}), 502
+    except Exception:
+        logger.exception("NPPES API error")
+        return jsonify({"error": "Provider search is temporarily unavailable. Please try again."}), 502
 
     raw_results = data.get("results") or []
 
@@ -357,13 +421,11 @@ def providers_search():
         addresses = r.get("addresses", [])
         taxonomies = r.get("taxonomies", [])
 
-        # Use the first practice location address (location_type = PRACTICE)
         practice_addr = next(
             (a for a in addresses if a.get("address_purpose") == "LOCATION"),
             addresses[0] if addresses else {}
         )
 
-        # Primary taxonomy
         primary_tax = next(
             (t for t in taxonomies if t.get("primary")),
             taxonomies[0] if taxonomies else {}
@@ -404,6 +466,7 @@ def providers_search():
 # /hcpcs/search  — search HCPCS Level II codes (supplies/DME)
 # ──────────────────────────────────────────────────────────────
 @app.route("/hcpcs/search", methods=["GET"])
+@limiter.limit("60 per minute")
 def hcpcs_search():
     q = request.args.get("q", "").strip()
     category = request.args.get("category", "").strip()
@@ -417,7 +480,7 @@ def hcpcs_search():
         query = db.query(HcpcsCode)
 
         if q:
-            pattern = f"%{q}%"
+            pattern = f"%{_escape_like(q)}%"
             query = query.filter(
                 or_(
                     func.lower(HcpcsCode.hcpcs_code).like(func.lower(pattern)),
@@ -470,6 +533,7 @@ def hcpcs_categories():
 # /icd10/search  — search ICD-10-PCS procedure codes
 # ──────────────────────────────────────────────────────────────
 @app.route("/icd10/search", methods=["GET"])
+@limiter.limit("60 per minute")
 def icd10_search():
     q = request.args.get("q", "").strip()
     try:
@@ -482,7 +546,7 @@ def icd10_search():
         query = db.query(Icd10Procedure)
 
         if q:
-            pattern = f"%{q}%"
+            pattern = f"%{_escape_like(q)}%"
             query = query.filter(
                 or_(
                     func.lower(Icd10Procedure.icd10_code).like(func.lower(pattern)),
@@ -541,26 +605,3 @@ def pipeline_status():
         return jsonify({"sources": sources})
     finally:
         db.close()
-
-
-# ──────────────────────────────────────────────────────────────
-# Legacy item endpoints (kept for backward compatibility)
-# ──────────────────────────────────────────────────────────────
-@app.route("/items", methods=["GET"])
-def get_items():
-    db = SessionLocal()
-    items = db.query(Item).all()
-    db.close()
-    return jsonify([{"id": i.id, "name": i.name, "description": i.description} for i in items])
-
-
-@app.route("/items", methods=["POST"])
-def create_item():
-    db = SessionLocal()
-    data = request.get_json()
-    item = Item(name=data["name"], description=data.get("description"))
-    db.add(item)
-    db.commit()
-    db.refresh(item)
-    db.close()
-    return jsonify({"id": item.id, "name": item.name, "description": item.description})
